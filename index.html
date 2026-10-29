@@ -382,6 +382,21 @@ textarea.desc:focus{outline:none;border-color:var(--accent);background:var(--sur
 .trow2 .ns{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .trow2 .act{opacity:0}.trow2:hover .act,.trow2 .act:focus-visible{opacity:1}
 @media (hover:none){.trow2 .act{opacity:1}}
+/* file blocks */
+.blk[data-type="file"]{padding-block:4px}
+.fblk{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.fblk .fx{width:40px;height:40px;flex:0 0 40px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-family:var(--f-mono);font-size:10.5px;font-weight:600;text-transform:uppercase;overflow:hidden}
+.fblk .fi{flex:1;min-width:0;display:flex;flex-direction:column}
+.fblk .fname{font-weight:550;overflow-wrap:anywhere}
+.fblk .fmeta{font-family:var(--f-mono);font-size:11.5px;color:var(--faint)}
+.fblk .fact{display:flex;gap:4px;flex-wrap:wrap}
+.fimg{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.fimg .ibox{border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--panel);min-height:80px;display:grid;place-items:center;color:var(--faint);font-size:13px;cursor:zoom-in;max-width:100%}
+.fimg img{display:block;max-width:100%;max-height:520px;width:auto;height:auto}
+.fimg .icap{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);min-width:0}
+.fimg .icap span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uploading{opacity:.6}
+.editor.filedrop{outline:2px dashed var(--accent);outline-offset:8px;border-radius:8px}
 /* link folders */
 .folders{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .folder{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:13.5px;max-width:100%;min-width:0}
@@ -966,9 +981,9 @@ function viewNotes() {
     </div>${open ? kids.map(k => row(k, depth + 1)).join('') : ''}`;
   };
   const roots = childPages('');
-  return topbar([{t:'Хранилище'}], `<button class="btn primary" data-act="new-page">${I.plus}Страница</button>`) + `<div class="wrap">
+  return topbar([{t:'Хранилище'}], `<button class="btn" data-act="files-upload">Загрузить файлы</button><button class="btn primary" data-act="new-page">${I.plus}Страница</button>`) + `<div class="wrap">
     <h1 class="view-title">Хранилище</h1>
-    <p class="sub">Раскладывайте всё по страницам, как по папкам: любую страницу можно вложить в другую. Кнопка «+» в строке создаёт страницу внутри, а «…» на странице позволяет её переместить.</p>
+    <p class="sub">Раскладывайте всё по страницам, как по папкам: любую страницу можно вложить в другую. На страницу можно прикрепить файлы и фото: кнопкой «Прикрепить файл», перетаскиванием или вставкой. Кнопка «Загрузить файлы» сверху кладёт их на страницу «Файлы».</p>
     ${roots.length ? `<div class="tree">${roots.map(p => row(p, 0)).join('')}</div>` : emptyBox('Пока пусто', 'Создайте первую страницу. Например, «Учёба», «Здоровье» или «Финансы», а внутри разложите заметки.')}
     ${recent.length > 2 ? `<div class="section"><div class="section-h"><h2>Недавно изменённые</h2></div><div class="nlist">${recent.map(noteRow).join('')}</div></div>` : ''}
   </div>`;
@@ -1019,20 +1034,20 @@ const BTYPES = [
   ['num','Нумерованный список','1.','Список с цифрами','number list нумерованный'],
   ['quote','Цитата','“','Выделенная цитата','quote цитата'],
   ['callout','Выноска','!','Заметный блок','callout выноска важно'],
-  ['code','Код','</>','Моноширинный текст','code код'],
   ['divider','Разделитель','—','Горизонтальная линия','divider line разделитель линия'],
   ['page','Подстраница','▤','Вложенная страница','page subpage подстраница страница'],
+  ['file','Файл или фото','⎙','Загрузить с устройства','file файл фото картинка документ изображение pdf'],
 ];
 const PH = { text:'Пишите или нажмите «/» для команд', h1:'Заголовок 1', h2:'Заголовок 2', h3:'Заголовок 3', todo:'Дело', bullet:'Пункт', num:'Пункт', quote:'Цитата', callout:'Важное', code:'Код' };
 let edPageId = null;
 function viewPage(r) {
   const p = S.pages[r.id];
-  if (!p) return topbar([{t:'Заметки',h:'notes'}]) + `<div class="wrap narrow">${emptyBox('Страница не найдена', 'Возможно, она была удалена.')}</div>`;
+  if (!p) return topbar([{t:'Хранилище',h:'notes'}]) + `<div class="wrap narrow">${emptyBox('Страница не найдена', 'Возможно, она была удалена.')}</div>`;
   const chain = []; let c = p; const seen = new Set();
   while (c && c.parentId && S.pages[c.parentId] && !seen.has(c.parentId)) { seen.add(c.parentId); c = S.pages[c.parentId]; chain.unshift(c); }
   const root = chain[0] || p;
   const crumbs = [];
-  if (root.projectId && S.projects[root.projectId]) crumbs.push({t:projName(root.projectId), h:'p-'+root.projectId}); else crumbs.push({t:'Заметки', h:'notes'});
+  if (root.projectId && S.projects[root.projectId]) crumbs.push({t:projName(root.projectId), h:'p-'+root.projectId}); else crumbs.push({t:'Хранилище', h:'notes'});
   chain.forEach(x => crumbs.push({t:pageTitle(x), h:'n-'+x.id}));
   crumbs.push({t:pageTitle(p)});
   return topbar(crumbs, `<span class="stamp" id="saved-at">${fmtAgo(p.updated)}</span><button class="icon-btn" data-act="page-menu" data-id="${p.id}" aria-label="Действия со страницей">${I.dots}</button>`) + `<div class="wrap narrow">
@@ -1040,6 +1055,7 @@ function viewPage(r) {
     <div class="page-title" id="pg-title" contenteditable="plaintext-only" spellcheck="true" data-ph="Без названия"${p.icon ? ' style="margin-top:8px"' : ''}>${esc(p.title||'')}</div>
     <div class="page-meta">
       ${p.icon ? '' : `<button class="btn ghost" data-act="page-icon" data-id="${p.id}" style="padding:4px 8px;font-size:13px;color:var(--muted)">Добавить иконку</button>`}
+      <button class="btn ghost" data-act="file-attach" data-id="${p.id}" style="padding:4px 8px;font-size:13px;color:var(--muted)">Прикрепить файл</button>
       ${!p.parentId ? `<select class="inline" id="pg-proj" data-change="page-proj" data-id="${p.id}" aria-label="Проект">${projectOptions(p.projectId, 'Без проекта')}</select>` : ''}
     </div>
     <div class="editor" id="editor"></div>
@@ -1052,6 +1068,7 @@ function blockHTML(b, idx, blocks) {
   else if (b.type === 'num') { let n = 1; for (let i = idx-1; i >= 0 && blocks[i].type === 'num'; i--) n++; mk = `<span class="mk num">${n}.</span>`; }
   const gut = `<span class="gut"><button data-act="blk-add" data-bid="${b.id}" aria-label="Добавить блок" title="Добавить блок ниже">${I.plus}</button><button class="handle" draggable="true" data-act="blk-menu" data-bid="${b.id}" aria-label="Действия с блоком" title="Перетащите или нажмите">${I.grip}</button></span>`;
   if (b.type === 'divider') return `<div class="blk" data-type="divider" data-bid="${b.id}">${gut}<hr></div>`;
+  if (b.type === 'file') return fileBlockHTML(b, gut);
   if (b.type === 'page') { const sp = S.pages[b.pageId]; return `<div class="blk" data-type="page" data-bid="${b.id}">${gut}<a class="plink" href="#n-${b.pageId}">${I.doc}<span>${esc(sp ? pageTitle(sp) : 'Страница удалена')}</span></a></div>`; }
   return `<div class="blk${b.type==='todo'&&b.checked?' checked':''}" data-type="${b.type}" data-bid="${b.id}">${gut}${mk}<div class="bt" contenteditable="plaintext-only" spellcheck="true" data-ph="${esc(PH[b.type]||'')}" ${b.type==='text'?'data-ph-focus':''}>${esc(b.text||'')}</div></div>`;
 }
@@ -1062,6 +1079,7 @@ function mountEditor(pid, focus) {
   const ed = $('#editor');
   ed.innerHTML = p.blocks.map((b,i) => blockHTML(b,i,p.blocks)).join('') + `<button class="add-blk" data-act="blk-append">${I.plus}Добавить блок</button>`;
   if (focus) focusBlock(focus.id, focus.pos);
+  Files.hydrate();
 }
 function curPage() { return S.pages[edPageId]; }
 function savePage() { const p = curPage(); if (!p) return; put('pages', p); const s = $('#saved-at'); if (s) s.textContent = 'сохраняю…'; clearTimeout(savePage.t); savePage.t = setTimeout(() => { const s2 = $('#saved-at'); if (s2) s2.textContent = 'сохранено'; renderSidebar(); }, 700); }
@@ -1107,6 +1125,8 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('paste', e => {
   const t = e.target;
+  const pf = e.clipboardData && e.clipboardData.files;
+  if (pf && pf.length && route().v === 'page' && curPage()) { e.preventDefault(); const blk = t.closest && t.closest('.blk'); const i = blk ? blkIndex(blk.dataset.bid) + 1 : curPage().blocks.length; Files.add([...pf], curPage().id, i); return; }
   if (!(t.isContentEditable)) return;
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -1151,6 +1171,7 @@ document.addEventListener('keydown', e => {
     if (i > 0) {
       e.preventDefault();
       let j = i - 1; const prev = p.blocks[j];
+      if (prev.type === 'file') { focusBlock(prev.id); return; }
       if (prev.type === 'divider' || prev.type === 'page') { p.blocks.splice(j, 1); savePage(); mountEditor(p.id, {id:b.id, pos:'start'}); return; }
       const len = (prev.text||'').length; prev.text = (prev.text||'') + b.text; p.blocks.splice(i, 1); savePage(); mountEditor(p.id, {id:prev.id, pos:len}); return;
     }
@@ -1159,7 +1180,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowDown' && caretOnEdge(t, 'bottom')) { const nx = prevText(p, i, 1); if (nx) { e.preventDefault(); focusBlock(nx.id, 'start'); } }
   if (e.key === 'Tab' && b.type === 'code') { e.preventDefault(); document.execCommand('insertText', false, '  '); }
 });
-function prevText(p, i, dir) { for (let j = i+dir; j >= 0 && j < p.blocks.length; j += dir) if (!['divider','page'].includes(p.blocks[j].type)) return p.blocks[j]; return null; }
+function prevText(p, i, dir) { for (let j = i+dir; j >= 0 && j < p.blocks.length; j += dir) if (!['divider','page','file'].includes(p.blocks[j].type)) return p.blocks[j]; return null; }
 function caretOnEdge(el, edge) {
   const s = getSelection(); if (!s.rangeCount) return true;
   const r = s.getRangeAt(0).cloneRange(); const rects = r.getClientRects(); const box = el.getBoundingClientRect();
@@ -1202,6 +1223,7 @@ function setBlockType(bid, type, fromSlash) {
   closePop();
   const p = curPage(); const i = blkIndex(bid); const b = p.blocks[i]; if (!b) return;
   if (fromSlash) b.text = b.text.replace(/^\/\S*/, '').trim();
+  if (type === 'file') { savePage(); Files.pick(p.id, b.text ? i + 1 : i, b.text ? null : b.id); return; }
   if (type === 'page') {
     const np = newPageObj({ parentId:p.id, spaceId:spaceOf(p) });
     if (b.text) np.title = b.text;
@@ -1265,7 +1287,9 @@ document.addEventListener('dragstart', e => {
   const c = e.target.closest?.('.card, .ptask');
   if (c) { dragTask = c.dataset.id; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'task'); }
 });
+const hasFiles = e => !dragBid && !dragTask && !dragLink && e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
 document.addEventListener('dragover', e => {
+  if (hasFiles(e) && route().v === 'page') { e.preventDefault(); $('#editor')?.classList.add('filedrop'); return; }
   if (dragBid) {
     const blk = e.target.closest?.('.blk'); $$('.drop-before,.drop-after').forEach(x => x.classList.remove('drop-before','drop-after'));
     if (blk && blk.dataset.bid !== dragBid) { e.preventDefault(); const r = blk.getBoundingClientRect(); blk.classList.add(e.clientY < r.top + r.height/2 ? 'drop-before' : 'drop-after'); }
@@ -1273,7 +1297,11 @@ document.addEventListener('dragover', e => {
   if (dragLink) { const f = e.target.closest?.('.folder[data-folder]'); $$('.drop').forEach(x => x !== f && x.classList.remove('drop')); if (f) { e.preventDefault(); f.classList.add('drop'); } }
   if (dragTask) { const col = e.target.closest?.('.col, [data-day]'); $$('.drop').forEach(x => x !== col && x.classList.remove('drop')); if (col) { e.preventDefault(); col.classList.add('drop'); } }
 });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) $('#editor')?.classList.remove('filedrop'); });
 document.addEventListener('drop', e => {
+  if (hasFiles(e)) { e.preventDefault(); $('#editor')?.classList.remove('filedrop');
+    if (route().v === 'page' && curPage() && e.dataTransfer.files.length) { const blk = e.target.closest?.('.blk'); const i = blk ? blkIndex(blk.dataset.bid) + 1 : curPage().blocks.length; Files.add([...e.dataTransfer.files], curPage().id, i); }
+    return; }
   if (dragBid) {
     const blk = e.target.closest?.('.blk'); if (blk) { e.preventDefault();
       const before = blk.classList.contains('drop-before'); const p = curPage();
@@ -1465,9 +1493,16 @@ document.addEventListener('click', async e => {
     case 'blk-check': { const p = curPage(); const b = p.blocks.find(x => x.id === el.dataset.bid); b.checked = !b.checked; savePage(); mountEditor(p.id); break; }
     case 'blk-add': { const p = curPage(); const i = blkIndex(el.dataset.bid); const nb = {id:uid(), type:'text', text:''}; p.blocks.splice(i+1, 0, nb); savePage(); mountEditor(p.id, {id:nb.id}); break; }
     case 'blk-append': { const p = curPage(); const last = p.blocks[p.blocks.length-1]; if (last && last.type === 'text' && !last.text) { focusBlock(last.id); break; } const nb = {id:uid(), type:'text', text:''}; p.blocks.push(nb); savePage(); mountEditor(p.id, {id:nb.id}); break; }
-    case 'blk-menu': { const bid = el.dataset.bid; openMenu(el, 'block', `<div class="ph">Превратить в</div>${BTYPES.filter(t=>t[0]!=='page').map(t => `<button data-act="blk-type" data-bid="${bid}" data-k="${t[0]}"><span class="tic">${esc(t[2])}</span><span class="tl">${t[1]}</span></button>`).join('')}<div class="sepl"></div><button data-act="blk-dup" data-bid="${bid}"><span class="tic">⧉</span><span class="tl">Дублировать</span></button><button class="del" data-act="blk-del" data-bid="${bid}"><span class="tic">✕</span><span class="tl">Удалить блок</span></button>`, bid); break; }
+    case 'blk-menu': { const bid = el.dataset.bid; openMenu(el, 'block', `<div class="ph">Превратить в</div>${BTYPES.filter(t=>t[0]!=='page'&&t[0]!=='file').map(t => `<button data-act="blk-type" data-bid="${bid}" data-k="${t[0]}"><span class="tic">${esc(t[2])}</span><span class="tl">${t[1]}</span></button>`).join('')}<div class="sepl"></div><button data-act="blk-dup" data-bid="${bid}"><span class="tic">⧉</span><span class="tl">Дублировать</span></button><button class="del" data-act="blk-del" data-bid="${bid}"><span class="tic">✕</span><span class="tl">Удалить блок</span></button>`, bid); break; }
     case 'blk-type': setBlockType(el.dataset.bid, k); break;
     case 'slash-pick': setBlockType(Pop.bid, k, true); break;
+    case 'file-attach': Files.pick(id, S.pages[id].blocks.length); break;
+    case 'files-upload': { let fp = list('pages').find(x => !x.parentId && (x.title||'').trim() === 'Файлы');
+      if (!fp) { fp = newPageObj({ title:'Файлы', icon:'📁', blocks:[] }); put('pages', fp, {immediate:true}); }
+      const pid = fp.id; Files.pick(pid, (fp.blocks||[]).length, null, () => go('n-' + pid)); break; }
+    case 'file-open': Files.open(el.dataset.bid, false); break;
+    case 'file-dl': Files.open(el.dataset.bid, true); break;
+    case 'files-sql': { const ta = $('#files-sql'); try { await navigator.clipboard.writeText(FILES_SQL); el.textContent = 'Скопировано'; } catch { ta.hidden = false; ta.select(); } break; }
     case 'blk-dup': { closePop(); const p = curPage(); const i = blkIndex(el.dataset.bid); const c = {...p.blocks[i], id:uid()}; if (c.type === 'page') break; p.blocks.splice(i+1, 0, c); savePage(); mountEditor(p.id, {id:c.id}); break; }
     case 'blk-del': { closePop(); const p = curPage(); const i = blkIndex(el.dataset.bid); const [rm] = p.blocks.splice(i, 1); if (!p.blocks.length) p.blocks.push({id:uid(), type:'text', text:''}); savePage(); mountEditor(p.id, {id:(p.blocks[Math.max(0,i-1)]).id}); if (rm.type === 'page' && S.pages[rm.pageId]) toast('Блок убран. Сама подстраница осталась в боковой панели'); break; }
     case 'dr-close': closeDrawer(); break;
@@ -1627,7 +1662,7 @@ const Sync = {
     if (!this.user || !this.client) return;
     if (this.busy) { this.again = true; return; }
     this.busy = true; const was = this.state; this.state = 'syncing'; if (was !== 'syncing') renderSidebar();
-    try { await this.push(); await this.pull(); this.state = 'ok'; this.error = ''; this.lastAt = now(); }
+    try { await this.push(); await this.pull(); this.state = 'ok'; this.error = ''; this.lastAt = now(); Files.migrate(); }
     catch (e) { this.state = navigator.onLine === false ? 'offline' : 'error'; this.error = (e && (e.message || e.error_description)) || String(e); console.warn('sync', e); }
     this.busy = false; renderSidebar();
     if (this.again) { this.again = false; this.soon(300); }
@@ -1690,10 +1725,120 @@ function openSync(msg = '', kind = '') {
   else body = `<h2>Синхронизация включена</h2>${note}
     <p>Вы вошли как <b style="color:var(--fg)">${esc(Sync.user.email || '')}</b>.</p>
     <div class="msg ${Sync.state === 'error' ? 'err' : ''}">${Sync.state === 'error' ? 'Последняя попытка не удалась: ' + esc(Sync.error) : Sync.state === 'offline' ? 'Нет сети. Изменения сохранены на устройстве и отправятся, когда появится интернет.' : Sync.lastAt ? 'Последняя синхронизация: ' + esc(fmtAgo(Sync.lastAt)) : 'Синхронизирую…'}${Sync.dirty.size ? ' Ждут отправки: ' + Sync.dirty.size + '.' : ''}</div>
-    <div class="row"><button class="btn primary" data-act="sync-now">Синхронизировать сейчас</button><span style="flex:1"></span><button class="btn ghost" data-act="sync-out">Выйти</button></div>`;
+    <div class="row"><button class="btn primary" data-act="sync-now">Синхронизировать сейчас</button><span style="flex:1"></span><button class="btn ghost" data-act="sync-out">Выйти</button></div>
+    <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+      <b>Файлы в облаке</b>
+      <p style="font-size:13.5px">Чтобы файлы и фото были на всех устройствах, один раз включите для них место в Supabase: нажмите «Скопировать команду», откройте в Supabase раздел SQL Editor, вставьте и нажмите Run.</p>
+      <div class="row"><button class="btn" data-act="files-sql">Скопировать команду</button></div>
+      <textarea id="files-sql" hidden readonly style="width:100%;min-height:120px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg)">${esc(FILES_SQL)}</textarea>
+    </div>`;
   m.innerHTML = `<div class="sbox"><div class="sync-box">${body}</div></div>`;
   const f = m.querySelector('input'); if (f) f.focus();
 }
+
+/* ================= files ================= */
+const FILES_SQL = `-- Пространство: место для файлов. Вставьте в SQL Editor и нажмите Run.
+insert into storage.buckets (id, name, public) values ('files', 'files', false) on conflict (id) do nothing;
+drop policy if exists "prostranstvo files select" on storage.objects;
+drop policy if exists "prostranstvo files insert" on storage.objects;
+drop policy if exists "prostranstvo files update" on storage.objects;
+drop policy if exists "prostranstvo files delete" on storage.objects;
+create policy "prostranstvo files select" on storage.objects for select to authenticated using (bucket_id = 'files' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "prostranstvo files insert" on storage.objects for insert to authenticated with check (bucket_id = 'files' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "prostranstvo files update" on storage.objects for update to authenticated using (bucket_id = 'files' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "prostranstvo files delete" on storage.objects for delete to authenticated using (bucket_id = 'files' and (storage.foldername(name))[1] = auth.uid()::text);`;
+const IDB = {
+  db:null,
+  open() { return this.db || (this.db = new Promise((ok, bad) => { const r = indexedDB.open('prostranstvo-files', 1); r.onupgradeneeded = () => r.result.createObjectStore('files'); r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error); })); },
+  async put(k, v) { const d = await this.open(); return new Promise((ok, bad) => { const t = d.transaction('files', 'readwrite'); t.objectStore('files').put(v, k); t.oncomplete = ok; t.onerror = () => bad(t.error); }); },
+  async get(k) { const d = await this.open(); return new Promise((ok, bad) => { const r = d.transaction('files').objectStore('files').get(k); r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error); }); },
+};
+const fmtSize = n => n < 1024 ? n + ' Б' : n < 1048576 ? Math.round(n / 1024) + ' КБ' : (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace('.', ',') + ' МБ';
+const isImg = b => /^image\/(png|jpe?g|gif|webp|svg\+xml|heic|avif)$/i.test(b.mime || '') || /\.(png|jpe?g|gif|webp|avif)$/i.test(b.name || '');
+const extOf = n => ((n || '').match(/\.([a-z0-9]{1,5})$/i) || [, 'файл'])[1];
+function findBlock(bid) { for (const p of Object.values(S.pages)) { const b = (p.blocks || []).find(x => x.id === bid); if (b) return [p, b]; } return [null, null]; }
+function fileBlockHTML(b, gut) {
+  const up = Files.busy.has(b.fileId);
+  const meta = up ? 'загружается…' : fmtSize(b.size || 0) + (b.where === 'cloud' ? '' : Sync.user ? ' · ждёт отправки в облако' : '');
+  if (isImg(b)) return `<div class="blk${up ? ' uploading' : ''}" data-type="file" data-bid="${b.id}">${gut}<div class="fimg"><div class="ibox" data-act="file-open" data-bid="${b.id}"><img alt="${esc(b.name)}" data-fimg="${b.id}" hidden><span data-fph="${b.id}">${up ? 'Загружаю…' : 'Открываю фото…'}</span></div><div class="icap"><span>${esc(b.name)} · ${esc(meta)}</span><button class="btn ghost" style="padding:3px 8px;font-size:12.5px" data-act="file-dl" data-bid="${b.id}">Скачать</button></div></div></div>`;
+  return `<div class="blk${up ? ' uploading' : ''}" data-type="file" data-bid="${b.id}">${gut}<div class="fblk"><span class="fx">${esc(extOf(b.name))}</span><span class="fi"><span class="fname">${esc(b.name)}</span><span class="fmeta">${esc(meta)}</span></span><span class="fact"><button class="btn ghost" style="padding:5px 9px" data-act="file-open" data-bid="${b.id}">Открыть</button><button class="btn ghost" style="padding:5px 9px" data-act="file-dl" data-bid="${b.id}">Скачать</button></span></div></div>`;
+}
+const Files = {
+  busy: new Set(), cache: new Map(), migrating:false,
+  pick(pageId, index, replaceBid, after) {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.hidden = true;
+    inp.onchange = () => { const fs = [...inp.files]; inp.remove(); if (!fs.length) return; if (after) after(); setTimeout(() => this.add(fs, pageId, index, replaceBid), after ? 60 : 0); };
+    document.body.appendChild(inp); inp.click();
+  },
+  async add(fs, pageId, index, replaceBid) {
+    const p = S.pages[pageId]; if (!p) return;
+    const big = fs.filter(f => f.size > 50 * 1048576); if (big.length) toast('Файлы больше 50 МБ не поддерживаются: ' + big.map(f => f.name).join(', '));
+    fs = fs.filter(f => f.size <= 50 * 1048576); if (!fs.length) return;
+    const blocks = fs.map(f => ({ id:uid(), type:'file', fileId:uid(), name:f.name || 'файл', size:f.size, mime:f.type || '', where:'local' }));
+    p.blocks = p.blocks || [];
+    if (replaceBid) { const ri = p.blocks.findIndex(x => x.id === replaceBid); if (ri >= 0 && !p.blocks[ri].text) { p.blocks.splice(ri, 1); if (ri < index) index--; } }
+    p.blocks.splice(Math.min(index, p.blocks.length), 0, ...blocks);
+    if (p.blocks[p.blocks.length - 1].type === 'file') p.blocks.push({ id:uid(), type:'text', text:'' });
+    blocks.forEach(b => this.busy.add(b.fileId));
+    put('pages', p, {immediate:true}); if (edPageId === pageId && route().v === 'page') mountEditor(pageId);
+    let failed = 0;
+    for (let k = 0; k < fs.length; k++) {
+      const f = fs[k], b = blocks[k];
+      try { await IDB.put(b.fileId, f); } catch (e) { console.warn('idb', e); }
+      if (Sync.user && Sync.client) { const r = await this.upload(b, f); if (!r) failed++; }
+      this.busy.delete(b.fileId);
+      const [pp, bb] = findBlock(b.id); if (pp && bb) { Object.assign(bb, { where:b.where, path:b.path }); put('pages', pp, {immediate:true}); }
+      if (edPageId === pageId && route().v === 'page' && !editingText()) mountEditor(pageId);
+    }
+    if (failed) toast('Файлы сохранены на этом устройстве, но не в облаке. Включите место для файлов: внизу слева → синхронизация → «Файлы в облаке».');
+    else toast(fs.length > 1 ? 'Файлы добавлены: ' + fs.length : 'Файл добавлен');
+  },
+  async upload(b, blob) {
+    const safe = (b.name || 'file').replace(/[^\w.\-]+/g, '_').slice(-80);
+    const path = Sync.user.id + '/' + b.fileId + '-' + safe;
+    try { const { error } = await Sync.client.storage.from('files').upload(path, blob, { contentType:b.mime || 'application/octet-stream', upsert:true }); if (error) throw error; b.where = 'cloud'; b.path = path; return true; }
+    catch (e) { console.warn('upload', e); return false; }
+  },
+  async url(b, download) {
+    const key = b.fileId + (download ? ':d' : '');
+    const c = this.cache.get(key); if (c && c.exp > Date.now()) return c.url;
+    let u = null, ttl = 50 * 60000;
+    if (b.where === 'cloud' && b.path && Sync.client && Sync.user) {
+      const { data, error } = await Sync.client.storage.from('files').createSignedUrl(b.path, 3600, download ? { download:b.name } : undefined);
+      if (!error && data) u = data.signedUrl;
+    }
+    if (!u) { const blob = await IDB.get(b.fileId).catch(() => null); if (blob) { u = URL.createObjectURL(blob); ttl = 864e5; } }
+    if (u) this.cache.set(key, { url:u, exp:Date.now() + ttl });
+    return u;
+  },
+  hydrate() {
+    $$('img[data-fimg]').forEach(async img => {
+      const [, b] = findBlock(img.dataset.fimg); if (!b || this.busy.has(b.fileId)) return;
+      const u = await this.url(b, false); const ph = $(`[data-fph="${b.id}"]`);
+      if (u) { img.onload = () => { img.hidden = false; ph && ph.remove(); }; img.src = u; }
+      else if (ph) ph.textContent = b.where === 'cloud' ? 'Фото в облаке: войдите в аккаунт, чтобы его увидеть' : 'Фото сохранено на другом устройстве';
+    });
+  },
+  async open(bid, download) {
+    const [, b] = findBlock(bid); if (!b) return;
+    const w = download ? null : window.open('', '_blank');
+    const u = await this.url(b, download);
+    if (!u) { if (w) w.close(); toast(b.where === 'cloud' ? 'Не получилось открыть файл. Проверьте интернет и вход в аккаунт.' : 'Этот файл сохранён на другом устройстве и ещё не попал в облако.'); return; }
+    if (w) { w.location.href = u; return; }
+    const a = document.createElement('a'); a.href = u; a.download = b.name || 'file'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+  },
+  async migrate() {
+    if (this.migrating || !Sync.user) return; this.migrating = true;
+    try {
+      for (const p of Object.values(S.pages)) for (const b of (p.blocks || [])) {
+        if (b.type !== 'file' || b.where === 'cloud' || this.busy.has(b.fileId)) continue;
+        const blob = await IDB.get(b.fileId).catch(() => null); if (!blob) continue;
+        if (await this.upload(b, blob)) { put('pages', p, {immediate:true}); }
+        else break;
+      }
+    } finally { this.migrating = false; }
+  },
+};
 
 /* ================= toast ================= */
 let toastT;
