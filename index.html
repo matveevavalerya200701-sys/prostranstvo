@@ -1538,7 +1538,7 @@ $('#import-file').addEventListener('change', async e => {
 
 /* ================= sync (Supabase) ================= */
 const SYNC_CFG = 'prostranstvo.sync.cfg', SYNC_DIRTY = 'prostranstvo.sync.dirty', SYNC_META = 'prostranstvo.sync.meta';
-const SUPABASE_JS = 'vendor/supabase.js';
+const SUPABASE_JS = 'supabase.js';
 function loadScript(src) { return new Promise((ok, bad) => { if (window.supabase?.createClient) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s); }); }
 const Sync = {
   client:null, user:null, state:'off', error:'', lastAt:'', busy:false, again:false, timer:null,
