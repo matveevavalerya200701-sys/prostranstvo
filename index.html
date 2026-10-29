@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#3e6a4f">
 <meta name="description" content="Личное рабочее пространство: планер, задачи, ссылки, проекты и заметки.">
 <link rel="manifest" href="manifest.webmanifest">
@@ -382,12 +382,33 @@ textarea.desc:focus{outline:none;border-color:var(--accent);background:var(--sur
 .trow2 .ns{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .trow2 .act{opacity:0}.trow2:hover .act,.trow2 .act:focus-visible{opacity:1}
 @media (hover:none){.trow2 .act{opacity:1}}
+/* link folders */
+.folders{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.folder{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:13.5px;max-width:100%;min-width:0}
+.folder:hover{border-color:var(--line-2)}
+.folder .fn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.folder .n{font-family:var(--f-mono);font-size:11.5px;color:var(--faint)}
+.folder svg{width:16px;height:16px;flex:0 0 16px;color:var(--muted)}
+.folder.on{border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
+.folder.on svg{color:var(--accent)}
+.folder.drop{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.folder.add{border-style:dashed;color:var(--muted);background:transparent}
+.folder-h{display:flex;align-items:center;gap:8px;margin:4px 0 12px}
+.folder-h h2{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em;overflow-wrap:anywhere}
+.lcard[draggable="true"]{cursor:grab}
+.lcard.dragging{opacity:.4}
 .picon{width:18px;flex:0 0 18px;text-align:center;font-size:15px;line-height:1}
 
 @media (max-width:860px){
   .home-grid{grid-template-columns:1fr}
 }
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (max-width:760px){
+  input,select,textarea{font-size:16px!important}
+  .bt{font-size:16px}
+  .blk[data-type="code"] .bt{font-size:16px}
+  .folders{flex-wrap:nowrap;overflow-x:auto;margin-left:calc(-1 * max(16px, env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px, env(safe-area-inset-right,0px)));padding:0 max(16px, env(safe-area-inset-left,0px)) 4px;scrollbar-width:none}
+  .folder{flex:0 0 auto}
   #sb{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-102%);transition:transform .2s;box-shadow:var(--shadow);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
   body.sb-open #sb{transform:none}
   .menu-btn{display:grid}
@@ -441,6 +462,7 @@ const I = {
   cal:'<svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4.5" width="14" height="12.5" rx="2"/><path d="M3 8.5h14M7 3v3M13 3v3M6.5 12l1.6 1.6 3-3"/></svg>',
   left:'<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12.5 5-5 5 5 5"/></svg>',
   right:'<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m7.5 5 5 5-5 5"/></svg>',
+  folder:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H8l1.5 1.8h6A1.5 1.5 0 0 1 17 8.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5z"/></svg>',
   pen:'<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12.5 4.5 15.5 7.5 7 16H4v-3z"/></svg>',
 };
 const markSvg = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="var(--accent-fg)" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" opacity=".55"/><rect x="3" y="11" width="6" height="6" rx="1.5" opacity=".55"/><rect x="11" y="11" width="6" height="6" rx="1.5"/></svg>';
@@ -495,16 +517,16 @@ const cvar = c => `var(--c-${COLORS.includes(c) ? c : 'slate'})`;
 const STATUS = { todo:'К выполнению', doing:'В работе', done:'Готово' };
 const PRIO = { 0:'Нет', 1:'Низкий', 2:'Средний', 3:'Высокий' };
 const PSTATUS = { active:'Активный', paused:'На паузе', done:'Завершён' };
-const KINDS = ['spaces','projects','tasks','links','pages'];
+const KINDS = ['spaces','projects','tasks','links','pages','lfolders'];
 const DEFAULT_SPACES = [{ id:'personal', name:'Личное', color:'rose', order:0 }, { id:'work', name:'Проекты', color:'sky', order:1 }];
 
 /* ================= state & storage ================= */
-const S = { spaces:{}, projects:{}, tasks:{}, links:{}, pages:{} };
+const S = { spaces:{}, projects:{}, tasks:{}, links:{}, pages:{}, lfolders:{} };
 const UI = {
   taskFilter: lsGet('ui.taskFilter') || 'open',
   taskView: lsGet('ui.taskView') || 'list',
   taskProject: '',
-  linkTag: '', linkQ: '', linkProject: '',
+  linkTag: '', linkQ: '', linkProject: '', linkFolder: '',
   captureKind: 'task',
   space: lsGet('ui.space') || 'personal',
   weekStart: '',
@@ -619,13 +641,14 @@ function ensureSpaces() {
   if (!Object.keys(S.spaces).length) for (const d of DEFAULT_SPACES) put('spaces', { ...d, created:now() }, {immediate:true});
   if (!S.spaces[UI.space]) { UI.space = spaces()[0]?.id || 'personal'; }
 }
-function setSpace(id) { UI.space = id; lsSet('ui.space', id); UI.taskProject = ''; UI.linkProject = ''; UI.linkTag = ''; closePop(); const r = route(); if (r.v === 'project' || r.v === 'page') location.hash = 'home'; else render(); }
+function setSpace(id) { UI.space = id; lsSet('ui.space', id); UI.taskProject = ''; UI.linkProject = ''; UI.linkTag = ''; UI.linkFolder = ''; closePop(); const r = route(); if (r.v === 'project' || r.v === 'page') location.hash = 'home'; else render(); }
 const projects = () => list('projects').sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || (a.created||'').localeCompare(b.created||''));
 const taskSort = (a,b) => (a.due||'9999').localeCompare(b.due||'9999') || (b.priority||0)-(a.priority||0) || (a.created||'').localeCompare(b.created||'');
 const childPages = pid => list('pages').filter(p => (p.parentId||'') === (pid||'')).sort((a,b) => (a.created||'').localeCompare(b.created||''));
 const pageTitle = p => (p && p.title && p.title.trim()) || 'Без названия';
 const pageSnippet = p => (p.blocks||[]).map(b => b.text||'').join(' ').trim().slice(0, 120);
 const projName = id => S.projects[id] ? S.projects[id].name || 'Без названия' : '';
+const lfolders = () => list('lfolders').sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || (a.created||'').localeCompare(b.created||''));
 const openTasks = () => list('tasks').filter(t => t.status !== 'done');
 
 /* ================= routing ================= */
@@ -730,13 +753,13 @@ function emptyBox(title, text) { return `<div class="empty"><b>${esc(title)}</b>
 function linkCard(l) {
   const dom = domainOf(l.url);
   const p = l.projectId && S.projects[l.projectId];
-  return `<div class="lcard">
+  return `<div class="lcard" draggable="true" data-link="${l.id}">
     <span class="mono-ic" style="background:${p ? cvar(p.color) : 'var(--accent)'}">${esc((dom[0]||'?').toUpperCase())}</span>
     <div class="lbody">
       <a class="lt" href="${esc(normUrl(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.title || dom)}</a>
       <span class="dom">${esc(dom)}</span>
       ${l.note ? `<span class="note">${esc(l.note)}</span>` : ''}
-      ${(l.tags||[]).length || p ? `<div class="ltags">${p ? `<span class="ltag">${esc(p.name)}</span>` : ''}${(l.tags||[]).map(t => `<span class="ltag">#${esc(t)}</span>`).join('')}</div>` : ''}
+      ${(l.tags||[]).length || p || (!UI.linkFolder && l.folderId && S.lfolders[l.folderId]) ? `<div class="ltags">${!UI.linkFolder && l.folderId && S.lfolders[l.folderId] ? `<span class="ltag">▸ ${esc(S.lfolders[l.folderId].name)}</span>` : ''}${p ? `<span class="ltag">${esc(p.name)}</span>` : ''}${(l.tags||[]).map(t => `<span class="ltag">#${esc(t)}</span>`).join('')}</div>` : ''}
     </div>
     <button class="icon-btn edit" data-act="open-link" data-id="${l.id}" aria-label="Изменить">${I.pen}</button>
   </div>`;
@@ -848,19 +871,32 @@ function viewTasks() {
 function viewLinks() {
   let arr = list('links').sort((a,b) => (b.created||'').localeCompare(a.created||''));
   const tags = [...new Set(arr.flatMap(l => l.tags || []))].sort((a,b) => a.localeCompare(b, 'ru'));
+  const folders = lfolders();
+  if (UI.linkFolder && UI.linkFolder !== '_none' && !S.lfolders[UI.linkFolder]) UI.linkFolder = '';
+  const inF = (l, f) => f === '_none' ? !(l.folderId && S.lfolders[l.folderId]) : l.folderId === f;
+  const all = arr;
+  if (UI.linkFolder) arr = arr.filter(l => inF(l, UI.linkFolder));
   if (UI.linkProject) arr = arr.filter(l => l.projectId === UI.linkProject);
   if (UI.linkTag) arr = arr.filter(l => (l.tags||[]).includes(UI.linkTag));
   if (UI.linkQ) { const q = UI.linkQ.toLowerCase(); arr = arr.filter(l => [l.title,l.url,l.note,(l.tags||[]).join(' ')].join(' ').toLowerCase().includes(q)); }
   return topbar([{t:'Ссылки'}]) + `<div class="wrap">
     <h1 class="view-title">Ссылки</h1>
     <p class="sub">Все полезные адреса в одном месте. Вставьте ссылку и нажмите Enter, остальное можно дописать потом.</p>
-    <form class="qa" data-form="link"><input id="link-in" autocomplete="off" placeholder="https://… вставьте ссылку"><span class="hint">Enter</span></form>
+    <div class="folders">
+      <button class="folder${!UI.linkFolder?' on':''}" data-act="link-folder" data-k="" data-folder="">${I.links.replace('class="ic"','')}<span class="fn">Все ссылки</span><span class="n">${all.length}</span></button>
+      ${folders.map(f => `<button class="folder${UI.linkFolder===f.id?' on':''}" data-act="link-folder" data-k="${f.id}" data-folder="${f.id}">${I.folder}<span class="fn">${esc(f.name||'Без названия')}</span><span class="n">${all.filter(l => l.folderId === f.id).length}</span></button>`).join('')}
+      ${folders.length && all.some(l => inF(l, '_none')) ? `<button class="folder${UI.linkFolder==='_none'?' on':''}" data-act="link-folder" data-k="_none" data-folder="_none">${I.folder}<span class="fn">Без папки</span><span class="n">${all.filter(l => inF(l, '_none')).length}</span></button>` : ''}
+      <button class="folder add" data-act="lfolder-new">${I.plus}<span class="fn">Новая папка</span></button>
+    </div>
+    ${UI.linkFolder && UI.linkFolder !== '_none' ? `<div class="folder-h">${I.folder.replace('<svg','<svg width="20" height="20" style="color:var(--accent)"')}<h2>${esc(S.lfolders[UI.linkFolder].name||'Без названия')}</h2><button class="icon-btn" data-act="lfolder-menu" data-id="${UI.linkFolder}" aria-label="Настроить папку">${I.dots}</button></div>` : ''}
+    <form class="qa" data-form="link" data-folder="${UI.linkFolder && UI.linkFolder !== '_none' ? UI.linkFolder : ''}"><input id="link-in" autocomplete="off" placeholder="${UI.linkFolder && UI.linkFolder !== '_none' ? 'Добавить ссылку в эту папку…' : 'https://… вставьте ссылку'}"><span class="hint">Enter</span></form>
     <div class="toolbar">
       <input id="link-q" class="inline" data-input="link-q" value="${esc(UI.linkQ)}" placeholder="Фильтр по названию или тегу" style="border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;min-width:0;flex:1 1 180px">
       <select class="inline" id="link-proj" data-change="link-proj" aria-label="Проект">${projectOptions(UI.linkProject, 'Все проекты')}</select>
     </div>
     ${tags.length ? `<div class="chips" style="margin-bottom:14px"><button class="chip${!UI.linkTag?' on':''}" data-act="link-tag" data-k="">Все</button>${tags.map(t => `<button class="chip${UI.linkTag===t?' on':''}" data-act="link-tag" data-k="${esc(t)}">#${esc(t)}</button>`).join('')}</div>` : ''}
-    ${arr.length ? `<div class="lgrid">${arr.map(linkCard).join('')}</div>` : emptyBox(list('links').length ? 'Ничего не нашлось' : 'Ссылок пока нет', list('links').length ? 'Попробуйте другой фильтр.' : 'Вставьте первую ссылку в поле выше.')}
+    ${arr.length ? `<div class="lgrid">${arr.map(linkCard).join('')}</div>` : emptyBox(UI.linkFolder && !UI.linkQ && !UI.linkTag && !UI.linkProject ? 'Папка пуста' : list('links').length ? 'Ничего не нашлось' : 'Ссылок пока нет', UI.linkFolder && !UI.linkQ && !UI.linkTag && !UI.linkProject ? 'Вставьте ссылку в поле выше или перетащите сюда карточку из другой папки.' : list('links').length ? 'Попробуйте другой фильтр.' : 'Вставьте первую ссылку в поле выше.')}
+    ${folders.length ? '<p class="sub" style="margin-top:14px;font-size:13px">Чтобы переложить ссылку в другую папку, перетащите карточку на папку или выберите папку в карточке (карандаш).</p>' : ''}
   </div>`;
 }
 function projectCard(p) {
@@ -1182,7 +1218,11 @@ function openMenu(anchor, kind, html, bid) {
   closePop(); Pop.el = document.createElement('div'); Pop.el.className = 'pop'; Pop.kind = kind; Pop.bid = bid;
   Pop.el.innerHTML = html; placePop(Pop.el, anchor);
 }
-document.addEventListener('mousedown', e => { if (Pop.el && !Pop.el.contains(e.target) && !e.target.closest('[data-act="blk-menu"],[data-act="page-menu"],[data-act="project-menu"],[data-act="space-menu"],[data-act="page-icon"]')) closePop(); });
+document.addEventListener('mousedown', e => { if (Pop.el && !Pop.el.contains(e.target) && !e.target.closest('[data-act="lfolder-menu"],[data-act="blk-menu"],[data-act="page-menu"],[data-act="project-menu"],[data-act="space-menu"],[data-act="page-icon"]')) closePop(); });
+function lfolderMenuHTML(id) {
+  const f = S.lfolders[id]; if (!f) return '';
+  return `<div class="ph">Название папки</div><div style="padding:2px 4px 6px"><input class="pin" id="lfolder-name" data-input="lfolder-name" data-id="${id}" value="${esc(f.name)}"></div><div class="sepl"></div><button class="del" data-act="lfolder-del" data-id="${id}">Удалить папку</button><div class="ph" style="text-transform:none;letter-spacing:0">Ссылки из папки не удалятся.</div>`;
+}
 const EMOJI = ['📁','📂','📝','📌','⭐','💡','🎯','✅','📅','📚','🎓','💼','💰','🏠','🌿','❤️','🏃','🍳','✈️','🎨','🎵','🛒','🔗','🧠','📷','🧾','🔒','🌙','☀️','🚀','🐾','🎁'];
 function spaceMenuHTML() {
   const cnt = id => ['tasks','links','pages','projects'].reduce((n, k) => n + Object.values(S[k]).filter(o => spaceOf(o) === id).length, 0);
@@ -1216,10 +1256,12 @@ function movePage(id, parentId, spaceId) {
 }
 
 /* ---- block drag & drop ---- */
-let dragBid = null, dragTask = null;
+let dragBid = null, dragTask = null, dragLink = null;
 document.addEventListener('dragstart', e => {
   const h = e.target.closest?.('.handle');
   if (h) { dragBid = h.dataset.bid; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'block'); const blk = h.closest('.blk'); e.dataTransfer.setDragImage(blk, 20, 12); return; }
+  const lc = e.target.closest?.('.lcard');
+  if (lc) { dragLink = lc.dataset.link; lc.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'link'); return; }
   const c = e.target.closest?.('.card, .ptask');
   if (c) { dragTask = c.dataset.id; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'task'); }
 });
@@ -1228,6 +1270,7 @@ document.addEventListener('dragover', e => {
     const blk = e.target.closest?.('.blk'); $$('.drop-before,.drop-after').forEach(x => x.classList.remove('drop-before','drop-after'));
     if (blk && blk.dataset.bid !== dragBid) { e.preventDefault(); const r = blk.getBoundingClientRect(); blk.classList.add(e.clientY < r.top + r.height/2 ? 'drop-before' : 'drop-after'); }
   }
+  if (dragLink) { const f = e.target.closest?.('.folder[data-folder]'); $$('.drop').forEach(x => x !== f && x.classList.remove('drop')); if (f) { e.preventDefault(); f.classList.add('drop'); } }
   if (dragTask) { const col = e.target.closest?.('.col, [data-day]'); $$('.drop').forEach(x => x !== col && x.classList.remove('drop')); if (col) { e.preventDefault(); col.classList.add('drop'); } }
 });
 document.addEventListener('drop', e => {
@@ -1238,10 +1281,12 @@ document.addEventListener('drop', e => {
       let to = blkIndex(blk.dataset.bid); if (!before) to++;
       p.blocks.splice(to, 0, mv); savePage(); mountEditor(p.id); }
   }
+  if (dragLink) { const f = e.target.closest?.('.folder[data-folder]'); if (f) { e.preventDefault(); const l = S.links[dragLink]; const to = f.dataset.folder === '_none' ? '' : f.dataset.folder;
+    if (l && f.dataset.folder !== '' && (l.folderId||'') !== to) { l.folderId = to; put('links', l, {immediate:true}); render(); toast(to ? 'Перенесено в «' + (S.lfolders[to]?.name || '') + '»' : 'Ссылка теперь без папки'); } } }
   if (dragTask) { const col = e.target.closest?.('.col, [data-day]'); if (col) { e.preventDefault(); const t = S.tasks[dragTask];
     if (col.dataset.col) setTaskStatus(t, col.dataset.col); else if (t && t.due !== col.dataset.day) { t.due = col.dataset.day; put('tasks', t, {immediate:true}); render(); } } }
 });
-document.addEventListener('dragend', () => { dragBid = null; dragTask = null; $$('.drop-before,.drop-after').forEach(x => x.classList.remove('drop-before','drop-after')); $$('.drop').forEach(x => x.classList.remove('drop')); $$('.dragging').forEach(x => x.classList.remove('dragging')); });
+document.addEventListener('dragend', () => { dragBid = null; dragTask = null; dragLink = null; $$('.drop-before,.drop-after').forEach(x => x.classList.remove('drop-before','drop-after')); $$('.drop').forEach(x => x.classList.remove('drop')); $$('.dragging').forEach(x => x.classList.remove('dragging')); });
 
 /* ================= actions ================= */
 function newPageObj(o = {}) { return { id:uid(), title:'', icon:'', parentId:'', projectId:'', spaceId:UI.space, blocks:[{id:uid(), type:'text', text:''}], created:now(), updated:now(), ...o }; }
@@ -1261,11 +1306,11 @@ function addTask(text, projectId = '', date = '') {
   const t = { id:uid(), title, status:'todo', due: due || date, priority, projectId, spaceId:UI.space, notes:'', created:now() };
   put('tasks', t, {immediate:true}); return t;
 }
-function addLink(text, projectId = '') {
+function addLink(text, projectId = '', folderId = '') {
   const parts = text.trim().split(/\s+/); const url = parts.find(isUrl) || parts[0];
   if (!url) return null;
   const rest = text.replace(url, '').trim();
-  const l = { id:uid(), url:normUrl(url), title: rest || titleFromUrl(url), tags:[], projectId, spaceId:UI.space, note:'', created:now() };
+  const l = { id:uid(), url:normUrl(url), title: rest || titleFromUrl(url), tags:[], projectId, folderId, spaceId:UI.space, note:'', created:now() };
   put('links', l, {immediate:true}); return l;
 }
 function setTaskStatus(t, s) {
@@ -1334,6 +1379,7 @@ function onInput(t) {
   if (k === 'proj-name') { const p = S.projects[id]; p.name = t.value; put('projects', p); renderSidebar(); }
   if (k === 'proj-desc') { const p = S.projects[id]; p.description = t.value; put('projects', p); }
   if (k === 'link-q') { UI.linkQ = t.value; render(); }
+  if (k === 'lfolder-name') { const f = S.lfolders[id]; f.name = t.value; put('lfolders', f); const h = $('.folder-h h2'); if (h) h.textContent = t.value || 'Без названия'; const fb = $(`.folder[data-folder="${id}"] .fn`); if (fb) fb.textContent = t.value || 'Без названия'; }
   if (k === 'space-name') { const sp = S.spaces[id]; sp.name = t.value; put('spaces', sp); renderSidebar(); }
   if (k === 'dr-title' || k === 'dr-notes' || k === 'dr-url' || k === 'dr-ltitle' || k === 'dr-lnote' || k === 'dr-tags') drawerInput(k, t);
 }
@@ -1353,7 +1399,7 @@ document.addEventListener('submit', e => {
   const inp = f.querySelector('input'); const v = inp.value.trim(); if (!v) return;
   const kind = f.dataset.form, proj = f.dataset.project || '';
   if (kind === 'task') addTask(v, proj, f.dataset.date || '');
-  if (kind === 'link') addLink(v, proj);
+  if (kind === 'link') addLink(v, proj, f.dataset.folder || '');
   if (kind === 'capture') {
     const ck = isUrl(v.split(/\s+/)[0]) ? 'link' : UI.captureKind;
     if (ck === 'task') { addTask(v); toast('Задача добавлена'); }
@@ -1396,6 +1442,13 @@ document.addEventListener('click', async e => {
     case 'open-task': if (e.target.closest('[data-act="toggle-task"]')) break; openDrawer('task', id); break;
     case 'open-link': openDrawer('link', id); break;
     case 'link-tag': UI.linkTag = k; render(); break;
+    case 'link-folder': UI.linkFolder = k; render(); break;
+    case 'lfolder-new': { const f = { id:uid(), name:'Новая папка', spaceId:UI.space, order:lfolders().length, created:now() }; put('lfolders', f, {immediate:true}); UI.linkFolder = f.id; render(); const b = $('[data-act="lfolder-menu"]'); if (b) { openMenu(b, 'menu', lfolderMenuHTML(f.id)); setTimeout(() => { const i = $('#lfolder-name'); i && (i.focus(), i.select()); }, 20); } break; }
+    case 'lfolder-menu': openMenu(el, 'menu', lfolderMenuHTML(id)); setTimeout(() => $('#lfolder-name')?.focus(), 20); break;
+    case 'lfolder-del': { closePop(); const f = S.lfolders[id]; const ls = Object.values(S.links).filter(l => l.folderId === id);
+      undoBuf = [['lfolders', structuredClone(f)], ...ls.map(l => ['links', structuredClone(l)])];
+      remove('lfolders', id); ls.forEach(l => { l.folderId = ''; put('links', l, {immediate:true}); }); UI.linkFolder = ''; render();
+      toast(ls.length ? `Папка удалена, ${plural(ls.length,'ссылка осталась','ссылки остались','ссылок осталось')} без папки` : 'Папка удалена', 'Вернуть', () => { for (const [kk,o] of undoBuf||[]) put(kk, o, {immediate:true}); undoBuf = null; UI.linkFolder = id; render(); }); break; }
     case 'proj-color': { const p = S.projects[id]; p.color = k; put('projects', p, {immediate:true}); render(); break; }
     case 'project-menu': openMenu(el, 'menu', `<button class="del" data-act="delete-project" data-id="${id}">Удалить проект</button><div class="ph" style="text-transform:none;letter-spacing:0">Задачи, ссылки и заметки проекта останутся, но без привязки к нему.</div>`); break;
     case 'delete-project': { closePop(); const p = S.projects[id]; const items = [['projects', p]];
@@ -1462,6 +1515,7 @@ function renderDrawer() {
       <div class="field"><label for="dr-ltitle">Название</label><input id="dr-ltitle" data-input="dr-ltitle" value="${esc(l.title)}"></div>
       <div class="field"><label for="dr-url">Адрес</label><input id="dr-url" data-input="dr-url" value="${esc(l.url)}" inputmode="url"></div>
       <div class="field"><label for="dr-tags">Теги</label><input id="dr-tags" data-input="dr-tags" value="${esc((l.tags||[]).join(', '))}" placeholder="через запятую"></div>
+      <div class="field"><label for="dr-lfolder">Папка</label><select id="dr-lfolder" data-change="dr-lfolder"><option value="">Без папки</option>${lfolders().map(f => `<option value="${f.id}"${l.folderId===f.id?' selected':''}>${esc(f.name||'Без названия')}</option>`).join('')}</select></div>
       <div class="field"><label for="dr-lproj">Проект</label><select id="dr-lproj" data-change="dr-lproj">${projectOptions(l.projectId)}</select></div>
       ${spaces().length > 1 ? `<div class="field"><label for="dr-lspace">Пространство</label><select id="dr-lspace" data-change="dr-space">${spaces().map(sp => `<option value="${sp.id}"${spaceOf(l)===sp.id?' selected':''}>${esc(sp.name)}</option>`).join('')}</select></div>` : ''}
       <div class="full"><label for="dr-lnote">Заметка</label><textarea id="dr-lnote" data-input="dr-lnote" placeholder="Зачем сохранила эту ссылку">${esc(l.note)}</textarea></div>
@@ -1478,7 +1532,7 @@ function drawerChange(k, t) {
   const d = UI.drawer; if (!d) return;
   if (k === 'dr-space') { const o = S[d.kind === 'task' ? 'tasks' : 'links'][d.id]; o.spaceId = t.value; o.projectId = ''; put(d.kind === 'task' ? 'tasks' : 'links', o, {immediate:true}); closeDrawer(true); render(); toast('Перенесено в «' + (S.spaces[t.value]?.name || '') + '»'); return; }
   if (d.kind === 'task') { const o = S.tasks[d.id]; if (k === 'dr-status') { o.status = t.value; o.doneAt = t.value === 'done' ? now() : ''; } if (k === 'dr-due') o.due = t.value; if (k === 'dr-proj') o.projectId = t.value; put('tasks', o, {immediate:true}); }
-  else { const o = S.links[d.id]; if (k === 'dr-lproj') o.projectId = t.value; put('links', o, {immediate:true}); }
+  else { const o = S.links[d.id]; if (k === 'dr-lproj') o.projectId = t.value; if (k === 'dr-lfolder') o.folderId = t.value; put('links', o, {immediate:true}); }
   needsRender = true;
 }
 
@@ -1652,6 +1706,7 @@ function toast(msg, btn, fn) {
 }
 
 /* ================= boot ================= */
+['gesturestart','gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive:false }));
 const th = lsGet('ui.theme'); if (th === 'dark' || th === 'light') document.documentElement.dataset.theme = th;
 initStore();
 setInterval(() => { if (route().v === 'home' && !editingText() && document.visibilityState === 'visible') { /* keep "today" fresh across midnight */ const d = today(); if (d !== initStore.day) { initStore.day = d; render(); } } }, 60000);
