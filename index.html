@@ -883,10 +883,10 @@ function viewLinks() {
     <h1 class="view-title">Ссылки</h1>
     <p class="sub">Все полезные адреса в одном месте. Вставьте ссылку и нажмите Enter, остальное можно дописать потом.</p>
     <div class="folders">
-      <button class="folder${!UI.linkFolder?' on':''}" data-act="link-folder" data-k="" data-folder="">${I.links.replace('class="ic"','')}<span class="fn">Все ссылки</span><span class="n">${all.length}</span></button>
       ${folders.map(f => `<button class="folder${UI.linkFolder===f.id?' on':''}" data-act="link-folder" data-k="${f.id}" data-folder="${f.id}">${I.folder}<span class="fn">${esc(f.name||'Без названия')}</span><span class="n">${all.filter(l => l.folderId === f.id).length}</span></button>`).join('')}
       ${folders.length && all.some(l => inF(l, '_none')) ? `<button class="folder${UI.linkFolder==='_none'?' on':''}" data-act="link-folder" data-k="_none" data-folder="_none">${I.folder}<span class="fn">Без папки</span><span class="n">${all.filter(l => inF(l, '_none')).length}</span></button>` : ''}
       <button class="folder add" data-act="lfolder-new">${I.plus}<span class="fn">Новая папка</span></button>
+      <button style="margin-left:auto" class="folder${!UI.linkFolder?' on':''}" data-act="link-folder" data-k="" data-folder="">${I.links.replace('class="ic"','')}<span class="fn">Все ссылки</span><span class="n">${all.length}</span></button>
     </div>
     ${UI.linkFolder && UI.linkFolder !== '_none' ? `<div class="folder-h">${I.folder.replace('<svg','<svg width="20" height="20" style="color:var(--accent)"')}<h2>${esc(S.lfolders[UI.linkFolder].name||'Без названия')}</h2><button class="icon-btn" data-act="lfolder-menu" data-id="${UI.linkFolder}" aria-label="Настроить папку">${I.dots}</button></div>` : ''}
     <form class="qa" data-form="link" data-folder="${UI.linkFolder && UI.linkFolder !== '_none' ? UI.linkFolder : ''}"><input id="link-in" autocomplete="off" placeholder="${UI.linkFolder && UI.linkFolder !== '_none' ? 'Добавить ссылку в эту папку…' : 'https://… вставьте ссылку'}"><span class="hint">Enter</span></form>
